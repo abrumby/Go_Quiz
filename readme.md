@@ -1,4 +1,4 @@
-[![Go](https://github.com/abrumby/Go_Quiz/actions/workflows/go.yml/badge.svg)](https://github.com/abrumby/Go_Quiz/actions/workflows/go.yml)
+[![Go](https://github.com/abrumby/Go_Quiz/actions/workflows/go.yml/badge.svg?branch=master)](https://github.com/abrumby/Go_Quiz/actions/workflows/go.yml)
 
 # Go Quiz App
 
