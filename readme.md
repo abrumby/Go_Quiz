@@ -2,7 +2,7 @@
 
 # Go Quiz App
 
-Part of learning Go following the exercise described below.
+Learning Go following the exercise described below.
 
 # Part 1
 
