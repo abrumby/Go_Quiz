@@ -49,5 +49,5 @@ At the end of the quiz the program should still output the total number of quest
 
 As a bonus exercises you can also...
 
-Add string trimming and clean-up to help ensure that correct answers with extra whitespace, capitalization, etc are not considered incorrect. Hint: Check out the strings package.  
+Add string trimming and clean-up to help ensure that correct answers with extra whitespace, capitalization, etc. are not considered incorrect. Hint: Check out the strings package.  
 Add an option (a new flag) to shuffle the quiz order each time it is run.
