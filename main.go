@@ -1,72 +1,113 @@
 package main
 
 import (
+	"bufio"
 	"encoding/csv"
 	"flag"
-	. "fmt"
+	"fmt"
+	"io"
+	"log"
+	"math/rand"
 	"os"
-	"strconv"
 	"strings"
+	"time"
 )
 
+type Problem struct {
+	Question string
+	Answer   string
+}
+
+type Quiz struct {
+	Problems []Problem
+	Score    int
+}
+
 func main() {
-	lines := parseCsv()
-	correctAnswers, totalQuestions := runQuiz(lines)
-	Printf("You scored: %v/%v\n", correctAnswers, totalQuestions)
-}
-
-func parseCsv() [][]string {
-	csvFileName := flag.String("csv", "problems.csv", "a csv file in the format of 'question,answer'")
+	var file string
+	var quizTime int
+	var randomize bool
+	flag.StringVar(&file, "file", "problems.csv", "--file=path/to/problems/file")
+	flag.IntVar(&quizTime, "timeout", 30, "--time=15")
+	flag.BoolVar(&randomize, "randomize", false, "--randomize=true")
 	flag.Parse()
-	file, err := os.Open(*csvFileName)
+
+	AwaitStart(quizTime)
+	quiz := Quiz{
+		Problems: ParseProblemsFrom(file, randomize),
+		Score:    0,
+	}
+	go func() {
+		<-time.After(time.Duration(quizTime) * time.Second)
+		TimeUpMessage()
+		OutputMessage(quiz.Score, len(quiz.Problems))
+		os.Exit(0)
+	}()
+	RunQuiz(&quiz)
+	OutputMessage(quiz.Score, len(quiz.Problems))
+}
+
+func AwaitStart(quizTime int) {
+	fmt.Printf("You have %v seconds to finish the quiz!\n", quizTime)
+	fmt.Print("Press 'Enter' to start the quiz")
+	bufio.NewReader(os.Stdin).ReadBytes('\n')
+}
+
+func ParseProblemsFrom(pathToFile string, randomize bool) []Problem {
+	file, err := os.Open(pathToFile)
 	if err != nil {
-		exit(Sprintf("Failed to open the csv file: %v", csvFileName))
-		os.Exit(1)
+		log.Fatal("File does not exists")
 	}
-	reader := csv.NewReader(file)
-	lines, err := reader.ReadAll()
-	if err != nil {
-		exit("Failed to parse the provided CSV file")
-	}
-	return lines
-}
-
-func runQuiz(lines [][]string) (int, string) {
-	problems := parseProblems(lines)
-	var correctAnswers = 0
-	var totalQuestions = strconv.FormatInt(int64(len(problems)), 10)
-	for i, p := range problems {
-		Printf("Problem # %v: %v = \n", i+1, p.question)
-		var answer string
-		scan, err := Scanf("%s\n", &answer)
-		if err != nil {
-			exit("Failed to parse input")
+	reader := csv.NewReader(bufio.NewReader(file))
+	var problems []Problem
+	for {
+		line, error := reader.Read()
+		if error == io.EOF {
+			break
+		} else if error != nil {
+			log.Fatal(error)
 		}
-		if answer == p.answer {
-			correctAnswers++
-		}
-		_ = scan
+		problems = append(problems, Problem{
+			Question: line[0],
+			Answer:   line[1],
+		})
 	}
-	return correctAnswers, totalQuestions
+	if randomize {
+		//randomize using current machine time
+		rand.Seed(time.Now().UnixNano())
+		rand.Shuffle(len(problems), func(i, j int) {
+			problems[i], problems[j] = problems[j], problems[i]
+		})
+	}
+	return problems
 }
-
-func parseProblems(lines [][]string) []problem {
-	ret := make([]problem, len(lines))
-	for i, line := range lines {
-		ret[i] = problem{
-			question: line[0],
-			answer:   strings.TrimSpace(line[1]),
+func RunQuiz(q *Quiz) {
+	reader := bufio.NewReader(os.Stdin)
+	for _, problem := range q.Problems {
+		AskQuestion(&problem)
+		answer := ReadLine(reader)
+		if problem.Answer == answer {
+			q.Score++
 		}
 	}
-	return ret
 }
 
-func exit(msg string) {
-	Println(msg)
-	os.Exit(1)
+func AskQuestion(p *Problem) {
+	fmt.Print(p.Question + " = ")
 }
 
-type problem struct {
-	question string
-	answer   string
+func ReadLine(reader *bufio.Reader) string {
+	str, _, err := reader.ReadLine()
+	if err == io.EOF {
+		return ""
+	}
+	return strings.TrimRight(string(str), "\r\n")
+}
+
+func TimeUpMessage() {
+	fmt.Println("\rTime is up!")
+}
+
+func OutputMessage(correctAnswersCount int, problemsCount int) {
+	fmt.Printf("\rYou scored %v out of %v!\n", correctAnswersCount, problemsCount)
 }
